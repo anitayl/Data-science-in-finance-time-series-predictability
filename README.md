@@ -17,6 +17,7 @@ I use sharpe ratio as a measurement of performance, which is Mean/SD.
 I use two models to build the portfolio:
 ## A simple OLS regression model
 
+![Strat_v s_Market](https://user-images.githubusercontent.com/102770592/223020283-6d8a766b-b36a-4053-b90e-d50304d21b54.png)
 
 The data source:
 https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html
