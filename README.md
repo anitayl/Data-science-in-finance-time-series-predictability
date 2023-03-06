@@ -12,6 +12,7 @@ I constructed the portfolio step by step by answering below questions:
 3. Use the daily predictions in (2) to form a portfolio that attempts to trade on these predictions. What is the performance of this portfolio and how does it compare to the market. 
 ## Methodology
 There are a lot of options for the strategy, here, I pick the top 3 industries and build an equal-weighted portfolio.
+
 I use sharpe ratio as a measurement of performance, which is Mean/SD.
 
 I use two models to build the portfolio:
@@ -19,24 +20,30 @@ I use two models to build the portfolio:
 
 ![Strat_v s_Market](https://user-images.githubusercontent.com/102770592/223020283-6d8a766b-b36a-4053-b90e-d50304d21b54.png)
 
-The sharpe ratio of this portfolio is 1.7128 , much higher than that of the market,which is only 0.3316
-While the simple OLS model has the problem of using future data to predict, which leads to overfitting. So .we need to use Rolling out of sample to fix this problem
+The sharpe ratio of this portfolio is 1.7128 , much higher than that of the market,which is only 0.3316.
+
+While the simple OLS model has the problem of using future data to predict, which leads to overfitting. 
+
+So we need to use Rolling out of sample to fix this problem
 
 ### OLS Rolling out of sample
-rolling window: 40 days
+1. rolling window: 40 days
 The sharpe ratio of this portfolio is 0.6086, much higher than that of the market,which is only 0.3363.
+Green line is the strategy returns using 40 days window, blue line is the result of simple OLS.
 
 ![FigureQ3](https://user-images.githubusercontent.com/102770592/223021592-afe96d82-0590-4789-a4cd-f7ed79856a16.png)
 
 While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
-rolling window: 20 days
+
+2. Rolling window: 20 days
 
 ![FigureQ5 2](https://user-images.githubusercontent.com/102770592/223021594-9295999f-9480-4df8-b15a-09eaf1e3a808.png)
 
-rolling window: 80 days
+3. Rolling window: 80 days
 
 ![FigureQ5](https://user-images.githubusercontent.com/102770592/223021596-f81a6d4d-1aa1-4239-9e4f-13cc1565af58.png)
 
+The sharpe ratio of this portfolio rolling in 80 days window is 0.6057, while the sharpe ratio of the portfolio rolling in 20 days is only 0.4713. 
 
 The data source:
 https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html
