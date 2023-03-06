@@ -15,9 +15,18 @@ There are a lot of options for the strategy, here, I pick the top 3 industries a
 I use sharpe ratio as a measurement of performance, which is Mean/SD.
 
 I use two models to build the portfolio:
-## A simple OLS regression model
+### A simple OLS regression model
 
 ![Strat_v s_Market](https://user-images.githubusercontent.com/102770592/223020283-6d8a766b-b36a-4053-b90e-d50304d21b54.png)
+
+The sharpe ratio of this portfolio is 1.7128 , much higher than that of the market,which is only 0.3316
+
+### OLS Rolling out of sample
+rolling window: 40 days
+The sharpe ratio of this portfolio is 0.6086, much higher than that of the market,which is only 0.3363.
+While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
+rolling window: 80 days
+rolling window: 20 days
 
 The data source:
 https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html
