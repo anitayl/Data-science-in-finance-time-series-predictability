@@ -25,9 +25,18 @@ While the simple OLS model has the problem of using future data to predict, whic
 ### OLS Rolling out of sample
 rolling window: 40 days
 The sharpe ratio of this portfolio is 0.6086, much higher than that of the market,which is only 0.3363.
+
+![FigureQ3](https://user-images.githubusercontent.com/102770592/223021592-afe96d82-0590-4789-a4cd-f7ed79856a16.png)
+
 While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
-rolling window: 80 days
 rolling window: 20 days
+
+![FigureQ5 2](https://user-images.githubusercontent.com/102770592/223021594-9295999f-9480-4df8-b15a-09eaf1e3a808.png)
+
+rolling window: 80 days
+
+![FigureQ5](https://user-images.githubusercontent.com/102770592/223021596-f81a6d4d-1aa1-4239-9e4f-13cc1565af58.png)
+
 
 The data source:
 https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html
