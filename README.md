@@ -29,11 +29,12 @@ So we need to use Rolling out of sample to fix this problem
 ### OLS Rolling out of sample
 1. rolling window: 40 days
 The sharpe ratio of this portfolio is 0.6086, much higher than that of the market,which is only 0.3363.
+
+While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
+
 Green line is the strategy returns using 40 days window, blue line is the result of simple OLS.
 
 ![FigureQ3](https://user-images.githubusercontent.com/102770592/223021592-afe96d82-0590-4789-a4cd-f7ed79856a16.png)
-
-While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
 
 2. Rolling window: 20 days
 
