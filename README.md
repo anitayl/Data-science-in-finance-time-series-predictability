@@ -20,6 +20,7 @@ I use two models to build the portfolio:
 ![Strat_v s_Market](https://user-images.githubusercontent.com/102770592/223020283-6d8a766b-b36a-4053-b90e-d50304d21b54.png)
 
 The sharpe ratio of this portfolio is 1.7128 , much higher than that of the market,which is only 0.3316
+While the simple OLS model has the problem of using future data to predict, which leads to overfitting. So .we need to use Rolling out of sample to fix this problem
 
 ### OLS Rolling out of sample
 rolling window: 40 days
