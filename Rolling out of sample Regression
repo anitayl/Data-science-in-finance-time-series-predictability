@@ -1,0 +1,162 @@
+
+#%%import packages
+import pandas as pd
+import yfinance as yf
+import pandas as pd
+import numpy as np
+
+import statsmodels.api as sm
+
+import os
+import pickle
+#%%1.previous regression estimation(Question 1)
+#clean the data
+industry = pd.read_csv("10_Industry_Portfolios_Daily.csv",skiprows=9)
+industry.rename(columns = {'Unnamed: 0':'Date'},inplace=True)
+industry.dropna(inplace=True)
+industry['Date'] = pd.to_datetime(industry['Date'])
+industry.iloc[:,1:] = industry.iloc[:,1:].apply(pd.to_numeric)
+value_weighted = industry.iloc[:25148,:]
+equal_weighted = industry.iloc[25148:,:]
+
+#Jan 1st, 2000 to Dec 31st, 2019 period
+industry1 = equal_weighted 
+industry1  = industry1.set_index('Date')
+lagged_return = industry1.shift(1)
+lead_return = industry1.shift(-1) 
+industry1 = industry1['2000':'2019']
+lagged_return = lagged_return['2000':'2019']
+lead_return = lead_return['2000':'2019']
+industryname = list(industry1.columns[:])
+OLS_dict = dict()
+OLS_pred = pd.DataFrame()
+OLS_R = dict()
+for industry in industryname:
+    print(industry)
+    X = industry1.loc[:, industry1.columns != industry] #To simplify the model, i will only use the one_day-lagged return of all other industries as the features
+    Y = lead_return[industry] #I use the daily return of the industry as the label
+    model = sm.OLS(Y,sm.add_constant(X))
+    results = model.fit()
+    OLS_dict[industry] = results
+    ypred = results.predict(sm.add_constant(X)) #Use the estimated regression coefficients in (3) to form daily return predictions for each of these industries
+    OLS_pred = pd.concat([OLS_pred,pd.DataFrame({industry:ypred})],axis=1,join='outer')
+# Use the daily predictions to form a portfolio that attempts to trade on these predictions. 
+#using the strategy picking the top industry and build an equal-weighted portfolio
+K = 1
+Highest_Pred = pd.DataFrame()
+for i in range(1,K+1):
+    col_name = 'high'+str(i)
+    Highest_Pred[col_name] = OLS_pred.T.apply(lambda x: x.nlargest(i).idxmin())
+
+OLS_Strat_Rets = pd.Series(dtype='float64')
+loc = industry1.columns.get_loc
+for d in Highest_Pred.index:
+    Cols = Highest_Pred[d:d]  
+    Mean_rets = lead_return[d:d].iloc[:, Cols.iloc[0,:].apply(lambda x: loc(x))].mean(axis=1)
+    OLS_Strat_Rets = OLS_Strat_Rets.append(Mean_rets)
+OLS_Strat_Rets = pd.DataFrame({'StratRets':OLS_Strat_Rets})
+#market data
+marketdata = pd.read_csv("F-F_Research_Data_Factors_daily.CSV",skiprows=3)
+marketdata.rename(columns = {'Unnamed: 0':'Date'},inplace=True)
+marketdata.dropna(inplace=True)
+marketdata['Date'] = pd.to_datetime(marketdata['Date'])
+marketdata.iloc[:,1:] = marketdata.iloc[:,1:].apply(pd.to_numeric)
+marketdata  = marketdata.set_index('Date')
+marketdata = marketdata['2000':'2019']
+# compare the strategy with market 
+OLS_Strat_Rets = pd.merge(OLS_Strat_Rets, marketdata['Mkt-RF'], left_index=True, right_index=True, how='left')   
+OLS_Strat_Rets = OLS_Strat_Rets/100       
+OLS_Strat_Rets.add(1).cumprod().plot(logy=True)    
+print('Market Mean ', OLS_Strat_Rets['Mkt-RF'].mean()*250,' SD ', OLS_Strat_Rets['Mkt-RF'].std()*(250**.5), ' SR ', (OLS_Strat_Rets['Mkt-RF'].mean()*250)/(OLS_Strat_Rets['Mkt-RF'].std()*(250**.5)))    
+print('Strat Mean ', OLS_Strat_Rets['StratRets'].mean()*250,' SD ', OLS_Strat_Rets['StratRets'].std()*(250**.5), ' SR ', (OLS_Strat_Rets['StratRets'].mean()*250)/(OLS_Strat_Rets['StratRets'].std()*(250**.5)))    
+# The sharpe ratio of this portfolio is 1.7128 , much higher than that of the market,which is only 0.3316
+#%% out of sample version of these regressions. Question 2
+window = 40
+X_all = industry1.loc[:, industry1.columns != industry]
+OLS_pred_OOS = pd.DataFrame(index=X_all.index,columns=(industryname))
+
+for industry in industryname:
+    print(industry)
+    for t in range(0,len(X_all)-window-1):
+        X = X_all.iloc[t:(t+window)]
+        Y = lead_return[industry].iloc[t:(t+window)]
+        model = sm.OLS(Y,sm.add_constant(X))
+        results = model.fit()
+        X_oos = X_all.iloc[t+window:t+window+1]
+        X_oos.insert(0, "const", 1, True)
+        ypred = results.predict(X_oos) 
+        OLS_pred_OOS.loc[X_all.index[t+window+1]][industry] = ypred[0]
+        
+OLS_pred_OOS = OLS_pred_OOS.astype(float)
+OLS_pred_OOS = OLS_pred_OOS.dropna()
+
+#%%Question 3
+K = 1
+Highest_Pred = pd.DataFrame()
+for i in range(1,K+1):
+    col_name = 'high'+str(i)
+    Highest_Pred[col_name] = OLS_pred_OOS.T.apply(lambda x: x.nlargest(i).idxmin())
+
+loc = lead_return.columns.get_loc  
+OLS_OOS_Strat_Rets = pd.Series(dtype='float64')
+for d in Highest_Pred.index:
+    Cols = Highest_Pred[d:d]  
+    Mean_rets = lead_return[d:d].iloc[:, Cols.iloc[0,:].apply(lambda x: loc(x))].mean(axis=1)
+    OLS_OOS_Strat_Rets = OLS_OOS_Strat_Rets.append(Mean_rets)
+OLS_OOS_Strat_Rets = pd.DataFrame({'StratRets':OLS_OOS_Strat_Rets})
+
+# compare the strategy with market 
+OLS_OOS_Strat_Rets = pd.merge(OLS_OOS_Strat_Rets, marketdata['Mkt-RF'], left_index=True, right_index=True, how='left')   
+OLS_OOS_Strat_Rets = OLS_OOS_Strat_Rets/100       
+OLS_OOS_Strat_Rets.add(1).cumprod().plot(logy=True)    
+print('Market Mean ', OLS_OOS_Strat_Rets['Mkt-RF'].mean()*250,' SD ', OLS_OOS_Strat_Rets['Mkt-RF'].std()*(250**.5), ' SR ', (OLS_OOS_Strat_Rets['Mkt-RF'].mean()*250)/(OLS_OOS_Strat_Rets['Mkt-RF'].std()*(250**.5)))    
+print('Strat Mean ', OLS_OOS_Strat_Rets['StratRets'].mean()*250,' SD ', OLS_OOS_Strat_Rets['StratRets'].std()*(250**.5), ' SR ', (OLS_OOS_Strat_Rets['StratRets'].mean()*250)/(OLS_OOS_Strat_Rets['StratRets'].std()*(250**.5)))
+# The sharpe ratio of this portfolio is 0.6086, much higher than that of the market,which is only 0.3363.
+#While the sharpe ratio of the portfolio calculated based on rolling basis is way less than that of previous result in (1).
+#%%Questio 4 How does the relative performance of the strategy in (3) varies over time? Does it 
+#outperform the benchmark during good, bad, or average times?
+OLS_OOS_Strat_Rets['start-market'] = (OLS_OOS_Strat_Rets['StratRets'] - OLS_OOS_Strat_Rets['Mkt-RF'])
+OLS_OOS_Strat_Rets['start-market'].add(1).cumprod().plot(logy=True) 
+#The strategy performance outperforms benchmark on average time. While in good time such as 2020 and
+#bad time such as 2009 and 2000-2004, it either underperform the benchmark or outperform benchmark less.
+#%%Question 5 
+for window in [80,20]:
+    X_all = industry1.loc[:, industry1.columns != industry]
+    OLS_pred_OOS = pd.DataFrame(index=X_all.index,columns=(industryname))
+    for industry in industryname:
+        print(industry)
+        for t in range(0,len(X_all)-window-1):
+            X = X_all.iloc[t:(t+window)]
+            Y = lead_return[industry].iloc[t:(t+window)]
+            model = sm.OLS(Y,sm.add_constant(X))
+            results = model.fit()
+            X_oos = X_all.iloc[t+window:t+window+1]
+            X_oos.insert(0, "const", 1, True)
+            ypred = results.predict(X_oos) 
+            OLS_pred_OOS.loc[X_all.index[t+window+1]][industry] = ypred[0]     
+    OLS_pred_OOS = OLS_pred_OOS.astype(float)
+    OLS_pred_OOS = OLS_pred_OOS.dropna()
+    K = 1
+    Highest_Pred = pd.DataFrame()
+    for i in range(1,K+1):
+        col_name = 'high'+str(i)
+        Highest_Pred[col_name] = OLS_pred_OOS.T.apply(lambda x: x.nlargest(i).idxmin())
+    loc = lead_return.columns.get_loc  
+    OLS_OOS_Strat_Rets = pd.Series(dtype='float64')
+    for d in Highest_Pred.index:
+        Cols = Highest_Pred[d:d]  
+        Mean_rets = lead_return[d:d].iloc[:, Cols.iloc[0,:].apply(lambda x: loc(x))].mean(axis=1)
+        OLS_OOS_Strat_Rets = OLS_OOS_Strat_Rets.append(Mean_rets)
+    OLS_OOS_Strat_Rets = pd.DataFrame({'StratRets':OLS_OOS_Strat_Rets})
+    OLS_OOS_Strat_Rets = pd.merge(OLS_OOS_Strat_Rets, marketdata['Mkt-RF'], left_index=True, right_index=True, how='left')   
+    OLS_OOS_Strat_Rets = OLS_OOS_Strat_Rets/100       
+    OLS_OOS_Strat_Rets.add(1).cumprod().plot(logy=True)    
+    print('Market Mean ', OLS_OOS_Strat_Rets['Mkt-RF'].mean()*250,' SD ', OLS_OOS_Strat_Rets['Mkt-RF'].std()*(250**.5), ' SR ', (OLS_OOS_Strat_Rets['Mkt-RF'].mean()*250)/(OLS_OOS_Strat_Rets['Mkt-RF'].std()*(250**.5)))    
+    print('Strat Mean ', OLS_OOS_Strat_Rets['StratRets'].mean()*250,' SD ', OLS_OOS_Strat_Rets['StratRets'].std()*(250**.5), ' SR ', (OLS_OOS_Strat_Rets['StratRets'].mean()*250)/(OLS_OOS_Strat_Rets['StratRets'].std()*(250**.5)))
+# The sharpe ratio of this portfolio rolling in 80 days window is 0.6057, while the sharpe ratio of the portfolio rolling in 20 days is only 0.4713. 
+#The startegy performace does not imporve when I use a window of 80 days, and it become much more worse when I use 20 days.
+#The results of different windows show that we cannot expect to improve strategy performace by simply either increasing the window or decreasing it.
+# When we are selecting the window, we want to choose the window that could maximize our startegy performace,
+#While also we don't want to select windows that are too large or too small, which will decrease the accuracy of predictions.
+#We need also take market sentiment into consideration and aviod selecting all bad time in a window period.
+
